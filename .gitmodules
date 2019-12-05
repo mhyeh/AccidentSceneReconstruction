@@ -1,0 +1,9 @@
+[submodule "rocon_devices"]
+	path = rocon_devices
+	url = https://github.com/BlackKite0206233/rocon_devices.git
+[submodule "ORB_SLAM2"]
+	path = ORB_SLAM2
+	url = https://github.com/BlackKite0206233/ORB_SLAM2.git
+[submodule "CMVS-PMVS"]
+	path = CMVS-PMVS
+	url = https://github.com/BlackKite0206233/CMVS-PMVS.git
