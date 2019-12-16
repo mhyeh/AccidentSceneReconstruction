@@ -1,3 +1,5 @@
 project/
 .vscode/
 node_modules/
+viewer/src/src
+viewer/pkg

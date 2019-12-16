@@ -4,17 +4,29 @@ const kue           = require('kue');
 
 let running = false;
 
-const run = async (name) => {
+const run = async name => {
   running = true;
-  await child_process.exec('../Reconstruct.sh ' + name);
+  const cp = child_process.exec(`bash ../Reconstruct.bash ${name}`);
+  cp.childProcess.stderr.on('data', data => {
+    if (data.trim() == "Done!") {
+      // socket io
+    } else if (data.trim() == "trackloss") {
+      // socket io
+    }
+  });
+  try {
+    await cp;
+  }
+  catch (e) {
+    console.log(e);
+  }
+  console.log("finish!");
   running = false;
 };
 
-const isRun = () => {
-  return running;
-}
+const isRun = () => running;
 
 module.exports = {
-  run: run,
-  isRun: isRun
+  run:   run,
+  isRun: isRun,
 };
