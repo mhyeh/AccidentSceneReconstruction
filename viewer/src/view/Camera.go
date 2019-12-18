@@ -30,7 +30,7 @@ const (
 
 func NewCamera(aspect float64) *Camera {
 	camera := &Camera{Position: mgl64.Vec3{0, 0, 250}, Fov: 40}
-	camera.PerspectiveMat = mgl64.Perspective(camera.Fov, aspect, 0.0000001, 1000000)
+	camera.PerspectiveMat = mgl64.Perspective(camera.Fov, aspect, 0.001, 1000)
 	camera.Reset()
 	camera.Spin(mgl64.Vec3{0.2, 0.4, 0})
 	return camera
@@ -54,7 +54,7 @@ func (c *Camera) Spin(vec mgl64.Vec3) {
 	}
 
 	newQ := mgl64.Quat{iw, vec}
-	c.Start = newQ.Mul(c.Start).Normalize()
+	c.Start = newQ.Normalize().Mul(c.Start).Normalize()
 }
 
 func (c *Camera) GetMatrix() mgl64.Mat4 {
@@ -69,6 +69,7 @@ func (c *Camera) ComputeNow(now mgl64.Vec2) {
 		m := onUnitSphere(now)
 		c.Now.V = d.Cross(m)
 		c.Now.W = d.Dot(m)
+		c.Now = c.Now.Normalize()
 	} else if c.Mode == PAN {
 		d := now.Sub(c.Down).Mul(c.Position.Z())
 		c.Position = c.Position.Add(c.Pan.Sub(d).Vec3(0))

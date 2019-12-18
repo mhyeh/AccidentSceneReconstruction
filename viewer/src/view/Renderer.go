@@ -3,19 +3,15 @@ package view
 import (
 	"fmt"
 	"log"
-	"time"
 	"image"
+	"image/jpeg"
+	"bytes"
+	"encoding/base64"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.2/glfw"
 	"github.com/go-gl/mathgl/mgl64"
-	"gocv.io/x/gocv"
-
-	// "github.com/nareix/joy4/av"
-	// "github.com/nareix/joy4/format/rtmp"
 )
-
-
 
 type Renderer struct {
 	Camera *Camera
@@ -24,10 +20,12 @@ type Renderer struct {
 	fbo    uint32
 	isStop bool
 	window *glfw.Window
+	Frame *image.RGBA
+	Count int
 }
 
 const (
-	vertexShaderSource = `
+	VertexShaderSource = `
 			#version 410
 
 			layout(location = 0) in vec3 vp;
@@ -45,7 +43,7 @@ const (
 			}
 		` + "\x00"
 
-	fragmentShaderSource = `
+	FragmentShaderSource = `
 			#version 410
 
 			in vec4 color;
@@ -57,8 +55,6 @@ const (
 			}
 		` + "\x00"
 )
-
-var drawCnt int
 
 func MatArray(d mgl64.Mat4) *float32 {
 	n := len(d)
@@ -86,75 +82,55 @@ func (r *Renderer) Init(w int, h int) {
 	r.window = window
 	r.window.MakeContextCurrent()
 
-	fmt.Println("init renderer")
 	if err := gl.Init(); err != nil {
 		panic(err)
 	}
-
+	
 	version := gl.GoStr(gl.GetString(gl.VERSION))
 	log.Println("OpenGL version", version)
-
-	r.Model.Init(vertexShaderSource, fragmentShaderSource)
-
-	gl.GenFramebuffers(1, &r.fbo)
-	drawCnt = 0
-}
-
-func (r *Renderer) GetFrame(w int, h int) gocv.Mat {
-	r.Draw()
-	// buffer := make([]byte, w*h*3)
-	im := image.NewNRGBA(image.Rect(0, 0, w, h))
-	gl.ReadPixels(0, 0, int32(w), int32(h), gl.RGB, gl.UNSIGNED_BYTE, gl.Ptr(im.Pix))
-	mat, _ := ToRGB8(im)
-	return mat
-}
-
-func ToRGB8(img image.Image) (gocv.Mat, error) {
-	bounds := img.Bounds()
-	x := bounds.Dx()
-	y := bounds.Dy()
-	bytes := make([]byte, 0, x*y*3)
-
-	//don't get surprised of reversed order everywhere below
-	for j := bounds.Min.Y; j < bounds.Max.Y; j++ {
-		for i := bounds.Min.X; i < bounds.Max.X; i++ {
-			r, g, b, _ := img.At(i, j).RGBA()
-			bytes = append(bytes, byte(b>>8), byte(g>>8), byte(r>>8))
-		}
+	
+	if r.Model != nil {
+		r.Model.Init(VertexShaderSource, FragmentShaderSource)
 	}
-	return gocv.NewMatFromBytes(y, x, gocv.MatTypeCV8UC3, bytes)
+
+	r.Frame = image.NewRGBA(image.Rect(0, 0, w, h))
+	r.Count = 0
+	
+	fmt.Println("init renderer")
 }
 
-func (r *Renderer) Draw() {
-	fmt.Println(drawCnt)
-	drawCnt++
-	gl.BindFramebuffer(gl.FRAMEBUFFER, r.fbo)
+func (r *Renderer) GetFrame(w int, h int) {
+	gl.ReadPixels(0, 0, int32(w), int32(h), gl.RGBA, gl.UNSIGNED_BYTE, gl.Ptr(r.Frame.Pix))
+}
+
+func (r *Renderer) Frame2Base64() string {
+	buf := bytes.NewBuffer(nil)   
+	jpeg.Encode(buf, r.Frame, &jpeg.Options{Quality: 80})
+	return base64.StdEncoding.EncodeToString(buf.Bytes())
+}
+
+func (r *Renderer) Draw(w int, h int) {
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-	r.Model.Draw(r.Camera.PerspectiveMat, r.Camera.ViewMat())
+	if r.Model != nil {
+		r.Model.Draw(r.Camera.PerspectiveMat, r.Camera.ViewMat())
+	}
+	if r.Count % 10 == 0 {
+		r.GetFrame(w, h)
+	}
 
 	glfw.PollEvents()
 	r.window.SwapBuffers()
 }
 
-// func (r *Renderer) Streaming(w int, h int, conn *rtmp.Conn) {
-// 	r.isStop = false
-// 	id := 0
-// 	for !r.isStop {
-// 		mt := r.GetFrame(w, h)
-// 		pkt := av.Packet{}
-// 		pkt.Data = mt.ToBytes()
-// 		if id % 30 == 0 {
-// 			pkt.IsKeyFrame = true
-// 		}
-// 		conn.WritePacket(pkt)
-// 		// r.Draw()
-// 		time.Sleep(time.Duration(33) * time.Millisecond)
-// 		id++
-// 	}
-
-// }
+func (r *Renderer) Render(w int, h int) {
+	for !r.window.ShouldClose() {
+		r.Draw(w, h)
+		r.Count++
+	}
+}
 
 func (r *Renderer) Stop() {
+	r.window.SetShouldClose(true)
 	r.isStop = true
 }

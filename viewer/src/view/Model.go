@@ -2,11 +2,11 @@ package view
 
 import (
 	"fmt"
-	// "log"
 	"strings"
 	"encoding/binary"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
+	"github.com/go-gl/mathgl/mgl64"
 )
 
 type ModelData struct {
@@ -101,8 +101,6 @@ func (m *ModelData) Draw(proj mgl64.Mat4, view mgl64.Mat4) {
 	gl.VertexAttribPointer(1, 3, gl.FLOAT, false, 0, nil)
 
 	gl.DrawArrays(gl.POINTS, 0, int32(len(m.vertices) / 3))
-
-	
 
 	gl.DisableVertexAttribArray(0)
 	gl.DisableVertexAttribArray(1)
