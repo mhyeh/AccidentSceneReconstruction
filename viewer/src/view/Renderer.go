@@ -5,7 +5,6 @@ import (
 	"log"
 	"time"
 	"image"
-	"runtime"
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.2/glfw"
@@ -13,12 +12,10 @@ import (
 	"gocv.io/x/gocv"
 
 	// "github.com/nareix/joy4/av"
-	"github.com/nareix/joy4/format/rtmp"
+	// "github.com/nareix/joy4/format/rtmp"
 )
 
-func init() {
-	runtime.LockOSThread()
-}
+
 
 type Renderer struct {
 	Camera *Camera
@@ -42,7 +39,7 @@ const (
 			out vec4 color;
 
 			void main() {
-				gl_PointSize = 5;
+				gl_PointSize = 2;
 				gl_Position = ProjectionMatrix * ModelViewMatrix * vec4(vp, 1.0);
 				color = vec4(c, 1.0);
 			}
@@ -63,13 +60,13 @@ const (
 
 var drawCnt int
 
-
-func MatToPrt(mat mgl64.Mat4) *float64 {
-	var res []float64
-	for i := 0; i < 16; i++ {
-		res = append(res, mat[i])
+func MatArray(d mgl64.Mat4) *float32 {
+	n := len(d)
+	f := make([]float32, n)
+	for i := 0; i < n; i++ {
+		f[i] = float32(d[i])
 	}
-	return &res[0]
+	return &f[0]
 }
 
 func (r *Renderer) Init(w int, h int) {
@@ -133,52 +130,30 @@ func (r *Renderer) Draw() {
 	drawCnt++
 	gl.BindFramebuffer(gl.FRAMEBUFFER, r.fbo)
 	gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
-	gl.UseProgram(r.Prog)
-	gl.Enable(gl.VERTEX_PROGRAM_POINT_SIZE)
 
-	gl.BindVertexArray(r.Model.vao)
-	var location int32
-	location = gl.GetUniformLocation(r.Model.prog, gl.Str("ProjectionMatrix\x00"))
-	gl.UniformMatrix4dv(location, 1, false, MatToPrt(r.Camera.PerspectiveMat))
-	location = gl.GetUniformLocation(r.Model.prog, gl.Str("ModelViewMatrix\x00"))
-	fmt.Println(location, r.Camera.ViewMat())
-	gl.UniformMatrix4dv(location, 1, false, MatToPrt(r.Camera.ViewMat()))
-
-	gl.BindBuffer(gl.ARRAY_BUFFER, r.Model.vvbo)
-	gl.EnableVertexAttribArray(0)
-	gl.VertexAttribPointer(0, 3, gl.FLOAT, false, 0, nil)
-
-	gl.BindBuffer(gl.ARRAY_BUFFER, r.Model.cvbo)
-	gl.EnableVertexAttribArray(1)
-	gl.VertexAttribPointer(1, 3, gl.FLOAT, false, 0, nil)
-
-	gl.DrawArrays(gl.POINTS, 0, int32(len(r.Model.vertices)))
+	r.Model.Draw(r.Camera.PerspectiveMat, r.Camera.ViewMat())
 
 	glfw.PollEvents()
 	r.window.SwapBuffers()
-
-	gl.DisableVertexAttribArray(0)
-	gl.DisableVertexAttribArray(1)
-	gl.Disable(gl.VERTEX_PROGRAM_POINT_SIZE)
 }
 
-func (r *Renderer) Streaming(w int, h int, conn *rtmp.Conn) {
-	r.isStop = false
-	id := 0
-	for !r.isStop {
-		// mt := r.GetFrame(w, h)
-		// pkt := av.Packet{}
-		// pkt.Data = mt.ToBytes()
-		// if id % 30 == 0 {
-		// 	pkt.IsKeyFrame = true
-		// }
-		// conn.WritePacket(pkt)
-		r.Draw()
-		time.Sleep(time.Duration(33) * time.Millisecond)
-		id++
-	}
+// func (r *Renderer) Streaming(w int, h int, conn *rtmp.Conn) {
+// 	r.isStop = false
+// 	id := 0
+// 	for !r.isStop {
+// 		mt := r.GetFrame(w, h)
+// 		pkt := av.Packet{}
+// 		pkt.Data = mt.ToBytes()
+// 		if id % 30 == 0 {
+// 			pkt.IsKeyFrame = true
+// 		}
+// 		conn.WritePacket(pkt)
+// 		// r.Draw()
+// 		time.Sleep(time.Duration(33) * time.Millisecond)
+// 		id++
+// 	}
 
-}
+// }
 
 func (r *Renderer) Stop() {
 	r.isStop = true

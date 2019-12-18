@@ -10,21 +10,27 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+	"runtime"
 	
 	"github.com/go-gl/mathgl/mgl64"
 	"github.com/googollee/go-socket.io"
 	"github.com/rs/cors"
 
-	"github.com/nareix/joy4/format/rtmp"
-	"github.com/nareix/joy4/av"
-	"github.com/nareix/joy4/codec/h264parser"
+	// "github.com/nareix/joy4/format/rtmp"
+	// "github.com/nareix/joy4/av"
+	// "github.com/nareix/joy4/codec/h264parser"
 
 	"view"
 )
 
-func getMouseNDC(w int, h int, mx int, my int, x *float64, y *float64) {
-	*x = float64(mx) / float64(w) * 2 - 1
-	*y = float64(my) / float64(h) * 2 - 1
+func init() {
+	runtime.LockOSThread()
+}
+
+func getMouseNDC(w int, h int, mx int, my int) (x float64, y float64) {
+	x = float64(mx) / float64(w) * 2 - 1
+	y = float64(my) / float64(h) * 2 - 1
+	return
 }
 
 func int2EG(n int) string {
@@ -37,10 +43,10 @@ func string2Bytes(b string) []byte {
     var str string
 
     for i := len(b); i > 0; i -= 8 {
-        if i-8 < 0 {
+        if i - 8 < 0 {
             str = string(b[0:i])
         } else {
-            str = string(b[i-8 : i])
+            str = string(b[i - 8 : i])
         }
         v, err := strconv.ParseUint(str, 2, 8)
         if err != nil {
@@ -56,9 +62,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	
-	// go server.Serve()
-	// defer server.Close()
 
 	mux := http.NewServeMux()
 	mux.Handle("/" + os.Args[1] + "/", server)
@@ -80,7 +83,6 @@ func main() {
 	)
 
 	server.On("connection", func(so socketio.Socket) {
-		// s.SetContext("")
 		fmt.Println("connected")
 		so.Emit("connected")
 
@@ -93,7 +95,8 @@ func main() {
 			renderer = &view.Renderer{Camera: camera, Model: model}
 			renderer.Init(windW, windH)
 			
-			conn, _ := rtmp.Dial("rtmp://localhost/model/" + os.Args[1])
+			// conn, _ := rtmp.Dial("rtmp://localhost/model/" + os.Args[1])
+
 			// streams := []av.CodecData{h264parser.CodecData{
 			// 	RecordInfo: h264parser.AVCDecoderConfRecord{
 			// 		AVCProfileIndication: 77,
@@ -110,24 +113,26 @@ func main() {
 			// 		Height: uint(windH),
 			// 	},
 			// }}
-			mbW := w / 16 - 1
-			mbH := h / 16 - 1
-			binstr := "01100111010011010000000000101001111100010110" + int2EG(mbW) + int2EG(mbH) + "10001"
-			if len(binstr) % 8 == 0 {
-				binstr += strings.Repeat("0", 8 - len(binstr) % 8)
-			}
-			// SPS, _ := hex.DecodeString("674D0029F16")
-			SPS := string2Bytes(binstr)
 
-			binstr = "0110100011001110001110001"
-			if len(binstr) % 8 == 0 {
-				binstr += strings.Repeat("0", 8 - len(binstr) % 8)
-			}
-			PPS := string2Bytes(binstr)
-			codecData, _ := h264parser.NewCodecDataFromSPSAndPPS(SPS, PPS)
-			streams := []av.CodecData{codecData}
-			conn.WriteHeader(streams)
-			go renderer.Streaming(w, h, conn)
+			// mbW := w / 16 - 1
+			// mbH := h / 16 - 1
+			// binstr := "01100111010011010000000000101001111100010110" + int2EG(mbW) + int2EG(mbH) + "10001"
+			// if len(binstr) % 8 == 0 {
+			// 	binstr += strings.Repeat("0", 8 - len(binstr) % 8)
+			// }
+			// // SPS, _ := hex.DecodeString("674D0029F16")
+			// SPS := string2Bytes(binstr)
+
+			// binstr = "0110100011001110001110001"
+			// if len(binstr) % 8 == 0 {
+			// 	binstr += strings.Repeat("0", 8 - len(binstr) % 8)
+			// }
+			// PPS := string2Bytes(binstr)
+			// codecData, _ := h264parser.NewCodecDataFromSPSAndPPS(SPS, PPS)
+			// streams := []av.CodecData{codecData}
+			// conn.WriteHeader(streams)
+			renderer.Draw()
+			// go renderer.Streaming(w, h, conn)
 		})
 		so.On("mouseDown", func(button int) {
 			if renderer != nil {
@@ -136,8 +141,7 @@ func main() {
 				} else if button == 2 {
 					camera.Mode = view.PAN
 				}
-				var x, y float64
-				getMouseNDC(windW, windH, mouseX, mouseY, &x, &y)
+				x, y := getMouseNDC(windW, windH, mouseX, mouseY)
 				camera.MouseDown(mgl64.Vec2{x, y})
 			}
 		})
@@ -151,9 +155,9 @@ func main() {
 				mouseX = x
 				mouseY = y
 				if camera.Mode != view.NONE {
-					var x, y float64
-					getMouseNDC(windW, windH, mouseX, mouseY, &x, &y)
+					x, y := getMouseNDC(windW, windH, mouseX, mouseY)
 					camera.ComputeNow(mgl64.Vec2{x, y})
+					renderer.Draw()
 				}
 			}
 		})
@@ -166,6 +170,7 @@ func main() {
 					zamt = 1 / 1.1
 				}
 				camera.Position[2] *= zamt
+				renderer.Draw()
 			}
 		})
 		so.On("disconnection", func() {
@@ -176,14 +181,10 @@ func main() {
 		})
 	})
 	
-
-
 	server.On("error", func(so socketio.Socket, e error) {
 		fmt.Println("meet error:", e)
 	})
 
 	log.Println("Serving at 140.118.127.145:3001...")
 	log.Fatal(srv.ListenAndServe())
-
-	
 }

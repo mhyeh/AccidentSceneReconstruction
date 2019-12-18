@@ -46,9 +46,9 @@ func LoadModel(fileName string) *ModelData {
 		model.normals = append(model.normals, float32(nx))
 		model.normals = append(model.normals, float32(ny))
 		model.normals = append(model.normals, float32(nz))
-		model.colors = append(model.colors, float32(r))
-		model.colors = append(model.colors, float32(g))
-		model.colors = append(model.colors, float32(b))
+		model.colors = append(model.colors, float32(r / 255))
+		model.colors = append(model.colors, float32(g / 255))
+		model.colors = append(model.colors, float32(b / 255))
 	}
 	return model
 }
