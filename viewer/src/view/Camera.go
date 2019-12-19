@@ -36,6 +36,22 @@ func NewCamera(aspect float64) *Camera {
 	return camera
 }
 
+func MatArray(d mgl64.Mat4) *float32 {
+	n := len(d)
+	f := make([]float32, n)
+	for i := 0; i < n; i++ {
+		f[i] = float32(d[i])
+	}
+	return &f[0]
+}
+
+func (c *Camera) GetMouseNDC(w int, h int, mx int, my int) (x float64, y float64) {
+	x = float64(mx) / float64(w) * 2 - 1
+	y = float64(my) / float64(h) * 2 - 1
+	return
+}
+
+
 func (c *Camera) ViewMat() mgl64.Mat4 {
 	mat := mgl64.Ident4()
 	mat = mat.Mul4(mgl64.Translate3D(-c.Position.X(), -c.Position.Y(), -c.Position.Z()))

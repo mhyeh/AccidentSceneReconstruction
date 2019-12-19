@@ -10,7 +10,6 @@ import (
 
 	"github.com/go-gl/gl/v4.1-core/gl"
 	"github.com/go-gl/glfw/v3.2/glfw"
-	"github.com/go-gl/mathgl/mgl64"
 )
 
 type Renderer struct {
@@ -22,47 +21,6 @@ type Renderer struct {
 	window *glfw.Window
 	Frame *image.RGBA
 	Count int
-}
-
-const (
-	VertexShaderSource = `
-			#version 410
-
-			layout(location = 0) in vec3 vp;
-			layout(location = 1) in vec3 c;
-			
-			uniform mat4 ProjectionMatrix;
-			uniform mat4 ModelViewMatrix;
-			
-			out vec4 color;
-
-			void main() {
-				gl_PointSize = 2;
-				gl_Position = ProjectionMatrix * ModelViewMatrix * vec4(vp, 1.0);
-				color = vec4(c, 1.0);
-			}
-		` + "\x00"
-
-	FragmentShaderSource = `
-			#version 410
-
-			in vec4 color;
-
-			out vec4 frag_colour;
-
-			void main() {
-				frag_colour = color;
-			}
-		` + "\x00"
-)
-
-func MatArray(d mgl64.Mat4) *float32 {
-	n := len(d)
-	f := make([]float32, n)
-	for i := 0; i < n; i++ {
-		f[i] = float32(d[i])
-	}
-	return &f[0]
 }
 
 func (r *Renderer) Init(w int, h int) {
@@ -90,7 +48,7 @@ func (r *Renderer) Init(w int, h int) {
 	log.Println("OpenGL version", version)
 	
 	if r.Model != nil {
-		r.Model.Init(VertexShaderSource, FragmentShaderSource)
+		r.Model.Init()
 	}
 
 	r.Frame = image.NewRGBA(image.Rect(0, 0, w, h))

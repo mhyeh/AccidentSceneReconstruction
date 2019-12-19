@@ -9,6 +9,38 @@ import (
 	"github.com/go-gl/mathgl/mgl64"
 )
 
+const (
+	vertexShaderSource = `
+			#version 410
+
+			layout(location = 0) in vec3 vp;
+			layout(location = 1) in vec3 c;
+			
+			uniform mat4 ProjectionMatrix;
+			uniform mat4 ModelViewMatrix;
+			
+			out vec4 color;
+
+			void main() {
+				gl_PointSize = 2;
+				gl_Position = ProjectionMatrix * ModelViewMatrix * vec4(vp, 1.0);
+				color = vec4(c, 1.0);
+			}
+		` + "\x00"
+
+	fragmentShaderSource = `
+			#version 410
+
+			in vec4 color;
+
+			out vec4 frag_colour;
+
+			void main() {
+				frag_colour = color;
+			}
+		` + "\x00"
+)
+
 type ModelData struct {
 	vertices []float32
 	normals []float32
@@ -23,7 +55,7 @@ type ModelData struct {
 	viewLoc int32
 }
 
-func (m *ModelData) Init(vertexShaderSource string, fragmentShaderSource string) {
+func (m *ModelData) Init() {
 	m.InitShader(vertexShaderSource, fragmentShaderSource)
 	m.InitVAO()
 	m.InitVBO()

@@ -7,15 +7,11 @@ import (
 	"strconv"
 )
 
-func check(e error) {
-	if e != nil {
-		panic(e)
-	}
-}
-
 func LoadModel(fileName string) *ModelData {
 	f, err := os.Open(fileName)
-	check(err)
+	if err != nil {
+		panic(err)
+	}
 	model := &ModelData{}
 	
 	reader := bufio.NewReader(f)

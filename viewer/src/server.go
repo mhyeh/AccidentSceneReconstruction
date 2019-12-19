@@ -21,13 +21,6 @@ func init() {
 	runtime.LockOSThread()
 }
 
-func getMouseNDC(w int, h int, mx int, my int) (x float64, y float64) {
-	x = float64(mx) / float64(w) * 2 - 1
-	y = float64(my) / float64(h) * 2 - 1
-	return
-}
-
-
 func main() {
 	server, err := socketio.NewServer(nil)
 	if err != nil {
@@ -67,7 +60,7 @@ func main() {
 				} else if button == 2 {
 					camera.Mode = view.PAN
 				}
-				x, y := getMouseNDC(windW, windH, mouseX, mouseY)
+				x, y := camera.GetMouseNDC(windW, windH, mouseX, mouseY)
 				camera.MouseDown(mgl64.Vec2{x, y})
 			}
 		})
@@ -81,7 +74,7 @@ func main() {
 				mouseX = x
 				mouseY = y
 				if camera.Mode != view.NONE {
-					x, y := getMouseNDC(windW, windH, mouseX, mouseY)
+					x, y := camera.GetMouseNDC(windW, windH, mouseX, mouseY)
 					camera.ComputeNow(mgl64.Vec2{x, y})
 					if renderer.Count % 10 == 0 {
 						so.Emit("frame", renderer.Frame2Base64())
